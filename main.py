@@ -21,27 +21,27 @@ user_input = st.text_input("Please Enter the uri of the application", " ")
 option = st.selectbox("Select an option:", ["Risk Analysis", "URS"])
 grant_access = st.checkbox("Grant edit access to services@cloudkarya.com")
 
+match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", user_input)
+if match:
+    FILE_ID = match.group(1)
+    print(FILE_ID)
+else:
+    print("Invalid Google Sheets URL")
+
+#FILE_ID="19ZW_Eq3ySx925glrnokXDLBvx69_A7sTP02f8-NuB4Q"
+print(FILE_ID)
+credentials = ServiceAccountCredentials.from_json_keyfile_name('/workspace/Demo/red-studio-400805-60aea2585639.json', ['https://www.googleapis.com/auth/spreadsheets'])
 
 
 
-def process_and_update_google_sheets():
+
+def execute_RiskAnalysis():
     global df  # Assuming df is a global variable containing the DataFrame
     global new_df  # Assuming new_df is a global variable
     global ijno_names  # Assuming ijno_names is a global variable
-    
-    match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", user_input)
-    if match:
-        FILE_ID = match.group(1)
-        print(FILE_ID)
-    else:
-        print("Invalid Google Sheets URL")
-   
-    #FILE_ID="19ZW_Eq3ySx925glrnokXDLBvx69_A7sTP02f8-NuB4Q"
-    print(FILE_ID)
-    credentials = ServiceAccountCredentials.from_json_keyfile_name('/workspace/Demo/red-studio-400805-60aea2585639.json', ['https://www.googleapis.com/auth/spreadsheets'])
-
+    global credentials
+      
     gc = gspread.authorize(credentials)
-
 
     sht1 = gc.open_by_key(FILE_ID)
     worksheet = sht1.worksheet('Master')
@@ -282,15 +282,64 @@ def process_and_update_google_sheets():
 
     # Update header and append data
     worksheet_step4.update([new_df_step4.columns.values.tolist()] + new_df_step4.values.tolist())
+def execute_URS():
+    global df  # Assuming df is a global variable containing the DataFrame
+    global new_df  # Assuming new_df is a global variable
+    global ijno_names  # Assuming ijno_names is a global variable
+    global credentials
+    gc = gspread.authorize(credentials)
+    sht1 = gc.open_by_key(FILE_ID)
+    worksheet = sht1.worksheet('Master')
+    all_records = worksheet.get_all_records()
+    #<========================20_URS_1===============================>
+
+    cols = "Requirement Num,DI Control,GxP Critical,Requirement Description".split(',')
+    headers = all_records[0].keys()  # Extract headers
+    try:
+        worksheet = sht1.worksheet('20_URS_1')
+    except gspread.exceptions.WorksheetNotFound:
+        worksheet = sht1.add_worksheet(title='20_URS_1', rows="100", cols="20")
+
+    # Clear the worksheet
+    worksheet.clear()
+    df_step1 = pd.DataFrame(all_records)
+
+    mask = df_step1['QP, BEA or ES'] == 'QP'
+    filtered_df = df_step1.loc[mask, ['Requirement-ID \nClient', 'DI Control', 'QP, BEA or ES', 'Requirement Description']]
+    filtered_df.columns = ['Requirement Num', 'DI Control', 'GxP Critical', 'Requirement Description']
+
+    # Create a new DataFrame and reset the index
+    new_df_step1 = pd.DataFrame(filtered_df)
+    new_df_step1.reset_index(drop=True, inplace=True)
+
+    # Fill NaN values with empty strings
+    new_df_step1.fillna('', inplace=True)
+
+    # Assuming cols is a list of columns to keep
+    if cols:
+        new_df_step1 = new_df_step1[cols]
+
+    # Update the Google Sheets worksheet
+    worksheet = sht1.worksheet('20_URS_1')
+    worksheet.update([new_df_step1.columns.values.tolist()] + new_df_step1.values.tolist())
+
+
+
+
+
 
 if st.button("Submit"):
     with st.spinner("Processing..."):
         # Perform data processing and update Google Sheets
-        process_and_update_google_sheets()
+        if option == "Risk Analysis":
+            execute_RiskAnalysis()
+        elif option == "URS":
+            execute_URS()
 
         # Simulate some data processing task
         time.sleep(3)
         success_message = "Trace Matrix successfully generated. [Click here to view]( user_input )"
+
         st.success(success_message)
 
 
