@@ -9,6 +9,7 @@ from oauth2client.client import GoogleCredentials
 from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 from google.auth import default
+from collections import defaultdict
 
 st.title("Generate Risk Matrix")
 
@@ -120,18 +121,20 @@ def process_and_update_google_sheets():
     sheet_url = "https://docs.google.com/spreadsheets/d/19ZW_Eq3ySx925glrnokXDLBvx69_A7sTP02f8-NuB4Q"
     sh = gc.open_by_url(sheet_url)
     worksheet_name = 'TM 1Step RA'
+    worksheet = None
     try:
         worksheet = sh.worksheet(worksheet_name)
     except gspread.exceptions.WorksheetNotFound:
         # If the worksheet is not found, create it
-        worksheet = sh.add_worksheet(title=worksheet_name, rows=1, cols=1)
-        worksheet.update('A1', new_df.columns.values.tolist())  # Update header
+        worksheet = sh.add_worksheet(title=worksheet_name, rows=1, cols=len(new_df.columns))
     else:
         # If the worksheet exists, clear its content
         worksheet.clear()
+    worksheet.update('A1', [new_df.columns.values.tolist()])  # Update header
 
-    # Update the Google Sheets
+    
     worksheet.append_rows(new_df.values.tolist())
+
     worksheet = sht1.worksheet('TM 1Step RA')
     df_step1 = worksheet.get_all_values()
     #<========================TM 2Step RA===============================>
@@ -158,18 +161,131 @@ def process_and_update_google_sheets():
     new_df_step2 = new_df_step2[cols_step2]
 
     # Update the Google Sheets for the second sheet
-    sh_step2 = gc.open_by_url(sheet_url)
-    worksheet_step2 = sh_step2.worksheet('TM 2Step RA')
+    worksheet_step2_name = 'TM 2Step RA'
+    worksheet_step2 = None
 
     try:
-        # Attempt to clear the worksheet's content
+        # Try to access the worksheet, if it exists
+        worksheet_step2 = sh.worksheet(worksheet_step2_name)
+    except gspread.exceptions.WorksheetNotFound:
+        # If the worksheet is not found, create it
+        worksheet_step2 = sh.add_worksheet(title=worksheet_step2_name, rows=1, cols=len(new_df_step2.columns))
+    else:
+    # If the worksheet exists, clear its content
         worksheet_step2.clear()
-    except gspread.exceptions.APIError:
-        # Handle API error (might occur if the worksheet is not found)
-        pass
+    # Update header
+    worksheet_step2.update('A1', [new_df_step2.columns.values.tolist()])
 
-    # Update the Google Sheets for the second sheet
-    worksheet_step2.update([new_df_step2.columns.values.tolist()] + new_df_step2.values.tolist())
+    # Append data
+    worksheet_step2.append_rows(new_df_step2.values.tolist())
+
+    #<========================TM 3Step RA===============================>
+    cols_step3 = "Requirement from URS or RA,URS Num,RA Num,Name of document,IQ,OQ,PQ,SOP".split(',')
+
+    # Fetch data from TM 2Step RA worksheet
+    worksheet_step3 = sh.worksheet('TM 2Step RA')
+    df_step3 = pd.DataFrame(worksheet_step3.get_all_records())
+
+
+    worksheet_name_step3 = 'TM 2Step RA'
+    worksheet_step3 = None
+
+    try:
+        # Try to access the worksheet, if it exists
+        worksheet_step3 = sht1.worksheet(worksheet_name_step3)
+    except gspread.exceptions.WorksheetNotFound:
+        # If the worksheet is not found, create it
+        worksheet_step3 = sht1.add_worksheet(title=worksheet_name_step3, rows=1, cols=len(cols))
+    else:
+        # If the worksheet exists, clear its content
+        worksheet_step3.clear()
+
+
+    # Group RA Num based on Requirement from URS or RA
+    new_df_step3_rano = df_step3.groupby('Requirement from URS or RA')['RA Num'].agg(list).reset_index()['RA Num']
+
+    # Get unique Requirement from URS or RA values
+    new_df_step3_req = list(set(df_step3['Requirement from URS or RA']))
+
+    # Prepare a list of dictionaries for the new DataFrame
+    new_data_step3 = []
+
+    # Iterate through the data
+    for i in range(len(new_df_step3_req)):
+        new_row = {
+            'Requirement from URS or RA': new_df_step3_req[i],
+            'URS Num': ' ',
+            'RA Num': str(new_df_step3_rano[i])[1:-1],
+            'Name of document': ' ',
+            'IQ': df_step3.iloc[i]['IQ'],
+            'OQ': df_step3.iloc[i]['OQ'],
+            'PQ': df_step3.iloc[i]['PQ'],
+            'SOP': df_step3.iloc[i]['SOP']
+        }
+        new_data_step3.append(new_row)
+
+    # Create the new DataFrame
+    new_df_step3 = pd.DataFrame(new_data_step3, columns=cols_step3)
+  
+
+    # Update header
+    worksheet_step3.update('A1', [cols_step3])
+
+    # Append data
+    worksheet_step3.append_rows(new_df_step3.values.tolist())
+    #<========================TM 4Step RA===============================>
+
+
+    cols_step4 = "Requirement from URS or RA,URS Num,RA Num,Name of document,IQ,OQ,PQ,SOP".split(',')
+    worksheet_step4_name = 'TM 4Step RA'
+    
+    # Fetch data from TM 3Step RA worksheet
+    worksheet_step3 = sht1.worksheet('TM 3Step RA')
+    df_step3 = pd.DataFrame(worksheet_step3.get_all_records())
+
+    # Initialize a defaultdict to store RA Num for each Requirement from URS or RA
+    new_df_step4_rano_dict = defaultdict(set)
+
+    # Map Requirement from URS or RA to corresponding RA Num
+    keywords_mapping = {
+        'alarm Test': 'OQ alarm Test: all sensors',
+        'calibration Sensor': 'OQ calibration-all sensors',
+        'test Sensor of the centuring frame': 'OQ functional test-Sensor of the centuring frame',
+        'test Sensor CONVEYOR TUB PRESENCE': 'OQ functional test-Sensor CONVEYOR TUB PRESENCE'
+    }
+
+    # Iterate through the data and map keywords to corresponding RA Num
+    for i in range(len(df_step3['Requirement from URS or RA'])):
+        for keyword, mapped_keyword in keywords_mapping.items():
+            if keyword in df_step3.iloc[i]['Requirement from URS or RA']:
+                ra_nums = set(map(int, str(df_step3.iloc[i]['RA Num']).split(', ')))
+                new_df_step4_rano_dict[mapped_keyword].update(ra_nums)
+
+    # Create a new DataFrame for TM 4Step RA
+    new_df_step4_rows = []
+    for key, value in new_df_step4_rano_dict.items():
+        row = [key, ' ', str(value)[1:-1], key, ' ', ' ', ' ', ' ']
+        new_df_step4_rows.append(row)
+
+    # Create the new DataFrame
+    new_df_step4 = pd.DataFrame(new_df_step4_rows, columns=cols_step4)
+
+    # Update or create the worksheet 'TM 4Step RA'
+    
+    worksheet_step4 = None
+
+    try:
+        # Try to access the worksheet, if it exists
+        worksheet_step4 = sh.worksheet(worksheet_step4_name)
+    except gspread.exceptions.WorksheetNotFound:
+        # If the worksheet is not found, create it
+        worksheet_step4 = sh.add_worksheet(title=worksheet_step4_name, rows=1, cols=len(cols_step4))
+    else:
+        # If the worksheet exists, clear its content
+        worksheet_step4.clear()
+
+    # Update header and append data
+    worksheet_step4.update([new_df_step4.columns.values.tolist()] + new_df_step4.values.tolist())
 
 if st.button("Submit"):
     with st.spinner("Processing..."):
