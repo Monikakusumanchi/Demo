@@ -40,6 +40,7 @@ def execute_RiskAnalysis():
     global new_df  # Assuming new_df is a global variable
     global ijno_names  # Assuming ijno_names is a global variable
     global credentials
+    global FILE_ID
       
     gc = gspread.authorize(credentials)
 
@@ -185,6 +186,18 @@ def execute_RiskAnalysis():
     # Fetch data from TM 2Step RA worksheet
     worksheet_step3 = sht1.worksheet('TM 2Step RA')
     df_step3 = pd.DataFrame(worksheet_step3.get_all_records())
+     # Create a new worksheet 'TM 3Step RA' and update header
+    worksheet_step3_name = 'TM 3Step RA'
+    worksheet_step3 = None
+
+    try:
+        # Try to access the worksheet, if it exists
+        worksheet_step3 = sht1.worksheet(worksheet_step3_name)
+    except gspread.exceptions.WorksheetNotFound:
+        # If the worksheet is not found, create it
+        worksheet_step3 = sht1.add_worksheet(title=worksheet_step3_name, rows=1, cols=len(cols_step3))
+    else:
+        worksheet_step3.clear()
 
     # Group RA Num based on Requirement from URS or RA
     new_df_step3_rano = df_step3.groupby('Requirement from URS or RA')['RA Num'].agg(list).reset_index()['RA Num']
@@ -211,19 +224,7 @@ def execute_RiskAnalysis():
 
     # Create the new DataFrame
     new_df_step3 = pd.DataFrame(new_data_step3, columns=cols_step3)
-    # Create a new worksheet 'TM 3Step RA' and update header
-    worksheet_step3_name = 'TM 3Step RA'
-    worksheet_step3 = None
-
-    try:
-        # Try to access the worksheet, if it exists
-        worksheet_step3 = sht1.add_worksheet(title=worksheet_step3_name, rows=1, cols=len(cols_step3))
-    except gspread.exceptions.WorksheetNotFound:
-        # If the worksheet is not found, create it
-        worksheet_step3 = sht1.add_worksheet(title=worksheet_step3_name, rows=1, cols=len(cols_step3))
-    else:
-    # If the worksheet exists, clear its content
-        worksheet_step3.clear()
+   
     # Update header
     worksheet_step3.update('A1', [cols_step3])
 
@@ -234,6 +235,7 @@ def execute_RiskAnalysis():
 
     cols_step4 = "Requirement from URS or RA,URS Num,RA Num,Name of document,IQ,OQ,PQ,SOP".split(',')
     worksheet_step4_name = 'TM 4Step RA'
+    
     
     # Fetch data from TM 3Step RA worksheet
     worksheet_step3 = sht1.worksheet('TM 3Step RA')
