@@ -287,6 +287,7 @@ def execute_URS():
     global new_df  # Assuming new_df is a global variable
     global ijno_names  # Assuming ijno_names is a global variable
     global credentials
+    global FILE_ID
     gc = gspread.authorize(credentials)
     sht1 = gc.open_by_key(FILE_ID)
     worksheet = sht1.worksheet('Master')
@@ -322,9 +323,32 @@ def execute_URS():
     # Update the Google Sheets worksheet
     worksheet = sht1.worksheet('20_URS_1')
     worksheet.update([new_df_step1.columns.values.tolist()] + new_df_step1.values.tolist())
+    #<========================30_URS Step1===============================>
 
 
+    cols = "Requirement from URS or RA,URS Num,RA Num,Name of Document,IQ,OQ,PQ,SOP".split(',')
 
+    worksheet_step1 = sht1.worksheet('20_URS_1')
+    df_step2 = pd.DataFrame(worksheet.get_all_records())
+    try:
+        worksheet_step1 = sht1.worksheet('30_URS Step1')
+    except gspread.exceptions.WorksheetNotFound:
+        worksheet_step1 = sht1.add_worksheet(title='30_URS Step1', rows="100", cols="20")
+
+    # Clear the worksheet
+    worksheet_step1.clear()
+
+    new_df_step2 = pd.DataFrame(columns=cols)
+    for i in range(len(df_step2)):
+        new_row = [df_step2.iloc[i]['Requirement Description'],df_step2.iloc[i]['Requirement Num'],"", "","","","",""]
+        new_df_step2.loc[len(new_df_step2)] = new_row
+
+        
+    worksheet_step1 = sht1.worksheet('30_URS Step1')
+    worksheet_step1.update([new_df_step2.columns.values.tolist()] + new_df_step2.values.tolist())
+    worksheet_step1 = sht1.worksheet('30_URS Step1')
+    df_step3 = pd.DataFrame(worksheet_step1.get_all_records())
+    df_step3.head()
 
 
 
