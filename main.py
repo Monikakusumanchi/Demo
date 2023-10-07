@@ -45,9 +45,10 @@ def process_and_update_google_sheets():
     sht1 = gc.open_by_key(FILE_ID)
     worksheet = sht1.worksheet('Master')
     data = worksheet.get_all_values()
-    headers = data[0]
+    #<========================TM 1Step RA===============================>
 
-    # Ensure headers are unique, if not, rename duplicates
+    # Extract headers and ensure uniqueness
+    headers = data[0]
     seen_headers = set()
     for i in range(len(headers)):
         header = headers[i]
@@ -55,17 +56,28 @@ def process_and_update_google_sheets():
             headers[i] = f"{header}_{i}"
         seen_headers.add(header)
 
-    # Create DataFrame
-    df = pd.DataFrame(data[1:], columns=headers)
-    
+    # Extract relevant columns
     selected_columns = ['I', 'J', 'N', 'O']
-    ijno_names = [df.columns[ord(i)-65] for i in selected_columns]
-    cols = "Controls,Function of Field Unit,Requirement from URS or RA,URS Num,RA Num,Name of document,IQ,OQ,PQ,SOP".split(",")
-    new_df = pd.DataFrame(columns=cols)
-    for i in range(len(df)):
-        for column, value in df.iloc[i].items():
+    ijno_names = [headers[ord(i) - 65] for i in selected_columns]
+
+    # Prepare lists to create DataFrame
+    controls_list = []
+    function_list = []
+    urs_ra_list = []
+    urs_num_list = []
+    ra_num_list = []
+    name_list = []
+    iq_list = []
+    oq_list = []
+    pq_list = []
+    sop_list = []
+
+    # Iterate through the data
+    for i in range(1, len(data)):
+        row = data[i]
+        for column, value in zip(headers, row):
             if column in ijno_names:
-                oq_value, iq_value, pq_value, sop_value = ' ',' ',' ',' '
+                oq_value, iq_value, pq_value, sop_value = ' ', ' ', ' ', ' '
                 if value.startswith('OQ'):
                     oq_value = 'x'
                 elif value.startswith('IQ'):
@@ -74,30 +86,91 @@ def process_and_update_google_sheets():
                     pq_value = 'x'
                 elif value.startswith('SOP'):
                     sop_value = 'x'
-                new_row = {
-                    'Controls': value,
-                    'Function of Field Unit': df.iloc[i]['Function of field unit'],
-                    'Requirement from URS or RA': value + " " + df.iloc[i]['Function of field unit'],
-                    'URS Num': ' ',
-                    'RA Num': df.iloc[i]['Row ID#'],
-                    'Name of document': ' ',
-                    'IQ': iq_value,
-                    'OQ': oq_value,
-                    'PQ': pq_value,
-                    'SOP': sop_value
-                }
 
-                new_df = pd.concat([new_df, pd.DataFrame([new_row])], ignore_index=True)
-            credentials = ServiceAccountCredentials.from_json_keyfile_name('/workspace/Demo/red-studio-400805-60aea2585639.json', ['https://www.googleapis.com/auth/spreadsheets'])
-            gc = gspread.authorize(credentials)
+                # Append values to respective lists
+                controls_list.append(value)
+                function_list.append(row[headers.index('Function of field unit')])
+                urs_ra_list.append(value + " " + row[headers.index('Function of field unit')])
+                urs_num_list.append(' ')
+                ra_num_list.append(row[headers.index('Row ID#')])
+                name_list.append(' ')
+                iq_list.append(iq_value)
+                oq_list.append(oq_value)
+                pq_list.append(pq_value)
+                sop_list.append(sop_value)
 
-            # Access the Google Sheets
-            sheet_url = "https://docs.google.com/spreadsheets/d/19ZW_Eq3ySx925glrnokXDLBvx69_A7sTP02f8-NuB4Q"
-            sh = gc.open_by_url(sheet_url)
-            worksheet = sh.worksheet('TM 1Step RA')
+    # Create the new DataFrame
+    new_df = pd.DataFrame({
+        'Controls': controls_list,
+        'Function of Field Unit': function_list,
+        'Requirement from URS or RA': urs_ra_list,
+        'URS Num': urs_num_list,
+        'RA Num': ra_num_list,
+        'Name of document': name_list,
+        'IQ': iq_list,
+        'OQ': oq_list,
+        'PQ': pq_list,
+        'SOP': sop_list
+    })
 
-            # Update the Google Sheets
-            worksheet.update([new_df.columns.values.tolist()] + new_df.values.tolist())
+    credentials = ServiceAccountCredentials.from_json_keyfile_name('/workspace/Demo/red-studio-400805-60aea2585639.json', ['https://www.googleapis.com/auth/spreadsheets'])
+    gc = gspread.authorize(credentials)
+
+    # Access the Google Sheets
+    sheet_url = "https://docs.google.com/spreadsheets/d/19ZW_Eq3ySx925glrnokXDLBvx69_A7sTP02f8-NuB4Q"
+    sh = gc.open_by_url(sheet_url)
+    worksheet_name = 'TM 1Step RA'
+    try:
+        worksheet = sh.worksheet(worksheet_name)
+    except gspread.exceptions.WorksheetNotFound:
+        # If the worksheet is not found, create it
+        worksheet = sh.add_worksheet(title=worksheet_name, rows=1, cols=1)
+        worksheet.update('A1', new_df.columns.values.tolist())  # Update header
+    else:
+        # If the worksheet exists, clear its content
+        worksheet.clear()
+
+    # Update the Google Sheets
+    worksheet.append_rows(new_df.values.tolist())
+    worksheet = sht1.worksheet('TM 1Step RA')
+    df_step1 = worksheet.get_all_values()
+    #<========================TM 2Step RA===============================>
+    cols_step2 = ["Requirement from URS or RA", "URS Num", "RA Num", "Name of document", "IQ", "OQ", "PQ", "SOP"]
+    # Extract headers and ensure uniqueness
+    headers = df_step1[0]
+    seen_headers = set()
+    for i in range(len(headers)):
+        header = headers[i]
+        if header in seen_headers:
+            headers[i] = f"{header}_{i}"
+        seen_headers.add(header)
+
+    # Create a DataFrame using the remaining rows as data and with the extracted headers
+    df_step1 = pd.DataFrame(df_step1[1:], columns=headers)
+
+    # Keep only the required columns
+    new_df_step2 = df_step1[cols_step2]
+    
+    # Filter out rows where "Requirement from URS or RA" contains 'none'
+    new_df_step2 = df_step1[~df_step1['Requirement from URS or RA'].str.contains('none')]
+
+    # Keep only the required columns
+    new_df_step2 = new_df_step2[cols_step2]
+
+    # Update the Google Sheets for the second sheet
+    sh_step2 = gc.open_by_url(sheet_url)
+    worksheet_step2 = sh_step2.worksheet('TM 2Step RA')
+
+    try:
+        # Attempt to clear the worksheet's content
+        worksheet_step2.clear()
+    except gspread.exceptions.APIError:
+        # Handle API error (might occur if the worksheet is not found)
+        pass
+
+    # Update the Google Sheets for the second sheet
+    worksheet_step2.update([new_df_step2.columns.values.tolist()] + new_df_step2.values.tolist())
+
 if st.button("Submit"):
     with st.spinner("Processing..."):
         # Perform data processing and update Google Sheets
