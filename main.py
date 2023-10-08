@@ -10,16 +10,41 @@ from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 from google.auth import default
 from collections import defaultdict
+from gspread_formatting import *
 
 st.title("Generate Risk Matrix")
 
+
+user_input = st.text_input("Please enter the url of the application", " ")
+option = st.selectbox("Select an option:", ["Risk Analysis", "URS"])
+grant_access = st.checkbox("I granted edit access to serivices@p-cube.com to the above spreadsheet")
+
 def simulate_data_processing():
     # Simulating some data processing task
+    global user_input
     time.sleep(3)
-    return "Trace Matrix   successfully generated. [Click here to view](https://docs.google.com/spreadsheets/d/19ZW_Eq3ySx925glrnokXDLBvx69_A7sTP02f8-NuB4Q/edit#gid=28624861)"
-user_input = st.text_input("Please Enter the uri of the application", " ")
-option = st.selectbox("Select an option:", ["Risk Analysis", "URS"])
-grant_access = st.checkbox("Grant edit access to services@cloudkarya.com")
+    return "Trace Matrix   successfully generated. [Click here to view](user_input)"
+
+def formatting(worksheet):
+    all_values = worksheet.get_all_values()
+
+# Calculate the number of filled rows and columns
+    num_filled_rows = len(all_values)
+    num_filled_columns = len(all_values[0]) if num_filled_rows > 0 else 0
+    cell_range = f"A2:{chr(ord('A') + num_filled_columns - 1)}{num_filled_rows + 1}"
+    header_fmt = cellFormat(
+    backgroundColor=color(1, 0.8, 1),
+    textFormat=textFormat(bold=True, foregroundColor=color(0, 0, 0)),horizontalAlignment='CENTER')
+
+    data_fmt = cellFormat(backgroundColor=color(182/255, 215/255, 168/255),horizontalAlignment='LEFT')
+    # Format the header row
+    format_cell_range(worksheet, '1', header_fmt)
+
+    # Format the data rows
+    format_cell_range(worksheet, cell_range, data_fmt)
+    # Freeze the header row
+    set_frozen(worksheet, rows=1)
+    print("Successfully made changes in the Google sheet.")
 
 match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", user_input)
 if match:
@@ -29,7 +54,7 @@ else:
     print("Invalid Google Sheets URL")
 
 #FILE_ID="19ZW_Eq3ySx925glrnokXDLBvx69_A7sTP02f8-NuB4Q"
-print(FILE_ID)
+
 credentials = ServiceAccountCredentials.from_json_keyfile_name('/workspace/Demo/red-studio-400805-60aea2585639.json', ['https://www.googleapis.com/auth/spreadsheets'])
 
 
@@ -135,7 +160,7 @@ def execute_RiskAnalysis():
 
     
     worksheet.append_rows(new_df.values.tolist())
-
+    formatting(worksheet)
     worksheet = sht1.worksheet('TM 1Step RA')
     df_step1 = worksheet.get_all_values()
     #<========================TM 2Step RA===============================>
@@ -179,7 +204,7 @@ def execute_RiskAnalysis():
 
     # Append data
     worksheet_step2.append_rows(new_df_step2.values.tolist())
-
+    formatting(worksheet_step2)
     #<========================TM 3Step RA===============================>
     cols_step3 = "Requirement from URS or RA,URS Num,RA Num,Name of document,IQ,OQ,PQ,SOP".split(',')
 
@@ -230,6 +255,8 @@ def execute_RiskAnalysis():
 
     # Append data
     worksheet_step3.append_rows(new_df_step3.values.tolist())
+    formatting(worksheet_step3)
+
     #<========================TM 4Step RA===============================>
 
 
@@ -284,6 +311,8 @@ def execute_RiskAnalysis():
 
     # Update header and append data
     worksheet_step4.update([new_df_step4.columns.values.tolist()] + new_df_step4.values.tolist())
+    formatting(worksheet_step4)
+
 def execute_URS():
     global df  # Assuming df is a global variable containing the DataFrame
     global new_df  # Assuming new_df is a global variable
@@ -325,20 +354,23 @@ def execute_URS():
     # Update the Google Sheets worksheet
     worksheet = sht1.worksheet('20_URS_1')
     worksheet.update([new_df_step1.columns.values.tolist()] + new_df_step1.values.tolist())
+    formatting(worksheet)
+
     #<========================30_URS Step1===============================>
 
 
     cols = "Requirement from URS or RA,URS Num,RA Num,Name of Document,IQ,OQ,PQ,SOP".split(',')
 
-    worksheet_step1 = sht1.worksheet('20_URS_1')
+    worksheet = sht1.worksheet('20_URS_1')
     df_step2 = pd.DataFrame(worksheet.get_all_records())
     try:
-        worksheet_step1 = sht1.worksheet('30_URS Step1')
+        worksheetURS_step1 = sht1.worksheet('30_URS Step1')
     except gspread.exceptions.WorksheetNotFound:
-        worksheet_step1 = sht1.add_worksheet(title='30_URS Step1', rows="100", cols="20")
+        worksheetURS_step1 = sht1.add_worksheet(title='30_URS Step1', rows="100", cols="20")
 
     # Clear the worksheet
-    worksheet_step1.clear()
+    worksheetURS_step1.clear()
+    print("data is cleared")
 
     new_df_step2 = pd.DataFrame(columns=cols)
     for i in range(len(df_step2)):
@@ -346,11 +378,155 @@ def execute_URS():
         new_df_step2.loc[len(new_df_step2)] = new_row
 
         
-    worksheet_step1 = sht1.worksheet('30_URS Step1')
-    worksheet_step1.update([new_df_step2.columns.values.tolist()] + new_df_step2.values.tolist())
-    worksheet_step1 = sht1.worksheet('30_URS Step1')
-    df_step3 = pd.DataFrame(worksheet_step1.get_all_records())
-    df_step3.head()
+    worksheetURS_step1 = sht1.worksheet('30_URS Step1')
+    worksheetURS_step1.update([new_df_step2.columns.values.tolist()] + new_df_step2.values.tolist())
+    print("data is appended")
+    formatting(worksheetURS_step1)
+
+    #<========================Step2 TM===============================>
+
+    df_step3 = pd.DataFrame(worksheetURS_step1.get_all_records())
+    try:
+        worksheet_step2= sht1.worksheet('Step2 TM')
+    except gspread.exceptions.WorksheetNotFound:
+        worksheet_step2 = sht1.add_worksheet(title='Step2 TM', rows="100", cols="20")
+
+    # Clear the worksheet
+    worksheet_step2.clear()
+    keywords = [
+                "PLC",
+                "Software / firmware" ,
+                "fieldbus",
+                "operator station",
+                "view",
+                "system area" ,
+                "batch environment applications",
+                "Recipe parameters",
+                "Recipe management",
+                "Limits",
+                "batch the data",
+                "synchronize the date and time",
+                "Central European Time",
+                "Date Time Format",
+                "computerized systems",
+                "Computer systems",
+                "system",
+                "complete and relevant raw data, metadata, audit trail",
+                "batch release",
+                "Users shall be restricted",
+                "Users shall not have access",
+                "regulated data",
+                "removable media",
+                "operator actions",
+                "exchange raw data",
+                "OSI PI",
+                "audit trail",
+                "System failure",
+                "OEM",
+                "cycle parameters",
+                "access controlled",
+                "reports",
+                "Data Historian"
+                ]
+
+    deliverables = [
+                "retain Cycle Parameters"
+                "version controlled"
+                "health status"
+                "control all system areas"
+                "operators shall be assigned"
+                "relevance to this system"
+                "audit trailing"
+                "access control, full audit trail traceability and version controlled"
+                "All modifications are logged"
+                "Naming convention"
+                "SNTP service"
+                "data integrity"
+                "critical operations, data integrity"
+                "Retain data, Metadata, audittrail"
+                "electronic record"
+                "electronic records"
+                "restricted to modify date and time"
+                "no access to modifiing data"
+                "not to be used to store data"
+                "need justification"
+                "built-in integrity checks"
+                "tracebility to originated source"
+                "backup"
+                "archive"
+                "no access to modifiing data"
+                "error handling process required"
+                "with buffer to avoid data loss"
+                "paper and electronic copies"
+                "paper and electronic copies, with filter"
+                "retain data till process is completed"
+                "must be accurate, complete, and legible and must retain the original meaning of the data."
+                "no loss of existing GMP data"
+                "belongs to the maintanence mode"
+                "accessable from  HMI"
+                "View the status of the equipment"
+                "Acknowledge and reset alarms"
+                "Configure PID loop parameters"
+                "Configure alarm and operating setpoints."
+                "Process monitoring shall be provided to detect unexpected or critical situations."
+                "The Batch report shall be customized according to MSD needs."
+                "Include at least the following list of required items for the batch report:"
+                "Batch Number, Material Numbers, User ID of active user performing the batch"
+                "Start and stop times of all batches."
+                "Specific alarms for the batch"
+                "CPP’s – alarms or positive confirmation of correct values."
+                "MSD logo, proprietary signage and equipment number."
+                "generate"
+                "reprint with print number"
+                "storage, archive"
+                "transfer all data to DH"
+                ]
+
+                
+    extract_key = []
+    extract_delvirables = []
+    print(len(df_step3))
+    c = 0
+    for i in range(len(df_step3)):
+        for key in keywords:
+            if key in df_step3.iloc[i]['Requirement from URS or RA']:
+                extract_key.append(key)
+                break
+            else:
+                extract_key.append(" ")
+
+    for i in range(len(df_step3)):
+        for delv in deliverables:
+            if delv in df_step3.iloc[i]['Requirement from URS or RA']:
+                extract_delvirables(delv)
+                break
+            else:
+                extract_delvirables.append(" ")
+    cols = "Keywords1,Keywords2,Requirement from URS or RA,URS Num,RA Num,Name of Document,IQ,OQ,PQ,SOP".split(',')
+    new_df_step3 = pd.DataFrame(columns=cols)
+
+# print(extract_key)
+# print(extract_delvirables)
+
+    for i in range(len(df_step3)):
+                new_row = {
+                    'Keywords1': extract_key[i],
+                    'Keywords2': extract_delvirables[i],
+                    'Requirement from URS or RA': df_step3.iloc[i]['Requirement from URS or RA'],
+                    'URS Num': df_step3.iloc[i]['URS Num'],
+                    'RA Num': df_step3.iloc[i]['RA Num'],
+                    'Name of Document': df_step3.iloc[i]['Name of Document'],
+                    'IQ': df_step3.iloc[i]['IQ'],
+                    'OQ': df_step3.iloc[i]['OQ'],
+                    'PQ': df_step3.iloc[i]['PQ'],
+                    'SOP': df_step3.iloc[i]['SOP'],
+                }
+                new_df_step3 = pd.concat([new_df_step3, pd.DataFrame([new_row])], ignore_index=True)
+    worksheet = sht1.worksheet('Step2 TM')
+    worksheet.update([new_df_step3.columns.values.tolist()] + new_df_step3.values.tolist())
+    formatting(worksheet)
+
+
 
 
 
