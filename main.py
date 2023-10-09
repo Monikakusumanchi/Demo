@@ -200,8 +200,8 @@ def execute_RiskAnalysis():
         gc = gspread.authorize(credentials)
 
         # Access the Google Sheets
-        sheet_url = "https://docs.google.com/spreadsheets/d/19ZW_Eq3ySx925glrnokXDLBvx69_A7sTP02f8-NuB4Q"
-        sh = gc.open_by_url(sheet_url)
+        #sheet_url = "https://docs.google.com/spreadsheets/d/19ZW_Eq3ySx925glrnokXDLBvx69_A7sTP02f8-NuB4Q"
+        sh = gc.open_by_url(user_input)
         worksheet_name = 'TM 1Step RA'
         worksheet = None
         try:
