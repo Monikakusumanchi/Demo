@@ -52,7 +52,29 @@ def formatting(worksheet):
             right=border('SOLID', color=color(0, 0, 0))
         )
     )
+    headers = worksheet.row_values(1)  # Get the headers from the first row
 
+    num_columns = len(headers)
+    max_lengths = []
+
+    for i in range(num_columns):
+        column_values = worksheet.col_values(i + 1)  # Google Sheets columns are 1-indexed
+        length = max(len(value) for value in column_values)
+        max_length = 250 if length>=40 else 140
+        max_lengths.append((chr(65 + i), max_length))
+    set_column_widths(worksheet,max_lengths)
+    worksheet.format("A:ZZ", {"wrapStrategy": "WRAP"})
+    cell_format = {
+        "verticalAlignment": "TOP"
+    }
+    worksheet.format('A1:ZZ1000', cell_format)
+    format_cell_range(worksheet, '1', header_fmt)
+
+    # Format the data rows
+    format_cell_range(worksheet, cell_range, data_fmt)
+
+    # Freeze the header row
+    set_frozen(worksheet, rows=1)
     # Format the header row
     format_cell_range(worksheet, '1', header_fmt)
 
