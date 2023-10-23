@@ -1,0 +1,23 @@
+/* Change text input background and text color */
+div[data-baseweb="input"] input {
+    background-color: #ffffff; /* Change to your desired color */
+    color: #FFFFFF; /* Change to your desired color */
+}
+
+/* Change radio button background and text color */
+div[data-baseweb="radio"] label {
+    background-color: #00BFFF; /* Change to your desired color */
+    color: #FFFFFF; /* Change to your desired color */
+}
+
+/* Change checkbox background and text color */
+div[data-baseweb="checkbox"] label {
+    background-color: #228B22; /* Change to your desired color */
+    color: #FFFFFF; /* Change to your desired color */
+}
+
+/* Change button background and text color */
+button {
+    background-color: #FFD700; /* Change to your desired color */
+    color: #000000; /* Change to your desired color */
+}

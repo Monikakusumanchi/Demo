@@ -14,7 +14,6 @@ from gspread_formatting import *
 
 st.title("Generate Risk Matrix")
 
-
 user_input = st.text_input("Please enter the url of the application", " ")
 option = st.radio("Select an option:", ["Risk Analysis", "URS"])
 grant_access = st.checkbox("I granted edit access to serivices@p-cube.com to the above spreadsheet")
@@ -62,7 +61,6 @@ def formatting(worksheet):
 
     # Freeze the header row
     set_frozen(worksheet, rows=1)
-
     
 
     print("Successfully made changes in the Google sheet.")
@@ -485,7 +483,7 @@ def execute_URS():
 
         new_df_step2 = pd.DataFrame(columns=cols)
         for i in range(len(df_step2)):
-            new_row = [df_step2.iloc[i]['Requirement Description'],df_step2.iloc[i]['Requirement Num'],"", "","","","",""]
+            new_row = [df_step2.iloc[i]['Requirement Description'],df_step2.iloc[i]['Requirement Num']," ", " ","X"," "," "," "]
             new_df_step2.loc[len(new_df_step2)] = new_row
 
             
@@ -505,93 +503,98 @@ def execute_URS():
         # Clear the worksheet
         worksheet_step2.clear()
         keywords = [
-                    "PLC",
-                    "Software / firmware" ,
-                    "fieldbus",
-                    "operator station",
-                    "view",
-                    "system area" ,
-                    "batch environment applications",
-                    "Recipe parameters",
-                    "Recipe management",
-                    "Limits",
-                    "batch the data",
-                    "synchronize the date and time",
-                    "Central European Time",
-                    "Date Time Format",
-                    "computerized systems",
-                    "Computer systems",
-                    "system",
-                    "complete and relevant raw data, metadata, audit trail",
-                    "batch release",
-                    "Users shall be restricted",
-                    "Users shall not have access",
-                    "regulated data",
-                    "removable media",
-                    "operator actions",
-                    "exchange raw data",
-                    "OSI PI",
-                    "audit trail",
-                    "System failure",
-                    "OEM",
-                    "cycle parameters",
-                    "access controlled",
-                    "reports",
-                    "Data Historian"
-                    ]
+        "PLC",
+        "Software / firmware" ,
+        "fieldbus",
+        "operator station",
+        "view",
+        "system area" ,
+        "batch environment applications",
+        "Recipe parameters",
+        "Recipe management",
+        "Limits",
+        "batch the data",
+        "synchronize the date and time",
+        "Central European Time",
+        "Date Time Format",
+        "computerized systems",
+        "Computer systems",
+        "retain data",
+        "complete and relevant raw data, metadata, audit trail",
+        "batch release",
+        "Users shall be restricted",
+        "Users shall not have access",
+        "regulated data",
+        "removable media",
+        "operator actions",
+        "exchange raw data",
+        "OSI PI",
+        "audit trail",
+        "System failure",
+        "OEM",
+        "cycle parameters",
+        "access controlled",
+        "reports",
+        "Data Historian"
+        ]
 
         deliverables = [
-                    "retain Cycle Parameters"
-                    "version controlled"
-                    "health status"
-                    "control all system areas"
-                    "operators shall be assigned"
-                    "relevance to this system"
-                    "audit trailing"
-                    "access control, full audit trail traceability and version controlled"
-                    "All modifications are logged"
-                    "Naming convention"
-                    "SNTP service"
-                    "data integrity"
-                    "critical operations, data integrity"
-                    "Retain data, Metadata, audittrail"
-                    "electronic record"
-                    "electronic records"
-                    "restricted to modify date and time"
-                    "no access to modifiing data"
-                    "not to be used to store data"
-                    "need justification"
-                    "built-in integrity checks"
-                    "tracebility to originated source"
-                    "backup"
-                    "archive"
-                    "no access to modifiing data"
-                    "error handling process required"
-                    "with buffer to avoid data loss"
-                    "paper and electronic copies"
-                    "paper and electronic copies, with filter"
-                    "retain data till process is completed"
-                    "must be accurate, complete, and legible and must retain the original meaning of the data."
-                    "no loss of existing GMP data"
-                    "belongs to the maintanence mode"
-                    "accessable from  HMI"
-                    "View the status of the equipment"
-                    "Acknowledge and reset alarms"
-                    "Configure PID loop parameters"
-                    "Configure alarm and operating setpoints."
-                    "Process monitoring shall be provided to detect unexpected or critical situations."
-                    "The Batch report shall be customized according to MSD needs."
-                    "Include at least the following list of required items for the batch report:"
-                    "Batch Number, Material Numbers, User ID of active user performing the batch"
-                    "Start and stop times of all batches."
-                    "Specific alarms for the batch"
-                    "CPP’s – alarms or positive confirmation of correct values."
-                    "MSD logo, proprietary signage and equipment number."
-                    "generate"
-                    "reprint with print number"
-                    "storage, archive"
-                    "transfer all data to DH"
-                    ]
+        "retain Cycle Parameters",
+        "version controlled",
+        "health status",
+        "control all system areas",
+        "operators shall be assigned",
+        "relevance to this system",
+        "audit trailing",
+        "access control, full audit trail traceability and version controlled",
+        "All modifications are logged",
+        "Naming convention",
+        "SNTP service",
+        "data integrity",
+        "critical operations, data integrity",
+        "execution of critical operations",
+        "raw data, metadata, and audit trail",
+        "Retain data, Metadata, audittrail",
+        "electronic record",
+        "electronic records",
+        "restricted to modify date and time",
+        "no access to modifiing data",
+        "not to be used to store data",
+        "need justification",
+        "built-in integrity checks",
+        "tracebility to originated source",
+        "backup",
+        "archive",
+        "no access to modifiing data",
+        "error handling process required",
+        "with buffer to avoid data loss",
+        "paper and electronic copies",
+        "paper and electronic copies, with filter",
+        "retain data till process is completed",
+        "must be accurate, complete, and legible and must retain the original meaning of the data.",
+        "no loss of existing GMP data",
+        "belongs to the maintanence mode",
+        "accessable from  HMI",
+        "View the status of the equipment",
+        "Acknowledge and reset alarms",
+        "Configure PID loop parameters",
+        "Configure alarm and operating setpoints.",
+        "Process monitoring shall be provided to detect unexpected or critical situations.",
+        "The Batch report shall be customized according to MSD needs.",
+        "Include at least the following list of required items for the batch report:",
+        "Batch Number, Material Numbers, User ID of active user performing the batch",
+        "Start and stop times of all batches.",
+        "Specific alarms for the batch",
+        "CPP’s – alarms or positive confirmation of correct values.",
+        "MSD logo, proprietary signage and equipment number.",
+        "generate",
+        "reprint with print number",
+        "storage, archive",
+        "transfer all data to DH",
+        "retain data, metadata, and audit trail",
+        "system used to record",
+        "obscure or modify the stored or displayed data",
+        ]
 
                     
         extract_key = []
@@ -599,20 +602,24 @@ def execute_URS():
         print(len(df_step3))
         c = 0
         for i in range(len(df_step3)):
+            found = False
             for key in keywords:
                 if key in df_step3.iloc[i]['Requirement from URS or RA']:
                     extract_key.append(key)
+                    found = True
                     break
-                else:
-                    extract_key.append(" ")
+            if not found:
+                extract_key.append(" ")
 
         for i in range(len(df_step3)):
+            found = False
             for delv in deliverables:
                 if delv in df_step3.iloc[i]['Requirement from URS or RA']:
-                    extract_delvirables(delv)
+                    extract_delvirables.append(delv)
+                    found = True
                     break
-                else:
-                    extract_delvirables.append(" ")
+            if not found:
+                extract_delvirables.append(" ")  
         cols = "Keywords1,Keywords2,Requirement from URS or RA,URS Num,RA Num,Name of Document,IQ,OQ,PQ,SOP".split(',')
         new_df_step3 = pd.DataFrame(columns=cols)
 
