@@ -16,7 +16,7 @@ st.title("Generate Risk Matrix")
 
 
 user_input = st.text_input("Please enter the url of the application", " ")
-option = st.selectbox("Select an option:", ["Risk Analysis", "URS"])
+option = st.radio("Select an option:", ["Risk Analysis", "URS"])
 grant_access = st.checkbox("I granted edit access to serivices@p-cube.com to the above spreadsheet")
 
 def simulate_data_processing():
@@ -369,9 +369,39 @@ def execute_RiskAnalysis():
         worksheet_step4.update([new_df_step4.columns.values.tolist()] + new_df_step4.values.tolist())
         formatting(worksheet_step4)
         st.success(f"Trace Matrix successfully generated. [Click here to view]({user_input})")
+        #<========================LoD (QualificationDocuments)===============================>
+        
+        cols = "QualificationStep,QualificationDocument,Company GroningerID".split(',')
+
+        FILE_ID_2 = '1lTuFfxbYnXgZMWXoJMFr2UcIr0cB16XOIcrMoXZ6jFw'
+        sht2 = gc.open_by_key(FILE_ID_2)
+
+        worksheet = sht2.worksheet('LoD (QualificationDocuments)')
+
+       
+        df_step4 = pd.DataFrame(worksheet.get_all_values()[0])
+
+        print(df_step4.head())
+        data = worksheet.get_all_values()
+        data = [row[:3] for row in data]
+        df_step4 = pd.DataFrame(data, columns=cols)
+        # for i in range(len(df_step4)):
+        #     new_row = [df_step4.iloc[i]['QualificationStep'],df_step4.iloc[i]['QualificationDocument'],df_step4.iloc[i]['Company GroningerID']]
+        #     new_df_step4.loc[len(new_df_step4)] = new_row
+
+        try:
+            NEW_SHEET_NAME = 'LoD (QualificationDocuments)'
+            worksheet = sht1.add_worksheet(title=NEW_SHEET_NAME, rows=200, cols=26)
+        except gspread.exceptions.APIError as e:
+            print(e)
+
+        worksheet = sht1.worksheet('LoD (QualificationDocuments)')
+        worksheet.update(df_step4.values.tolist())
+        formatting(worksheet)
 
     else :
         st.error(f"Check the sheet for correct Formate and check if the spreadsheet does not have only one 'Master' sheet [here]({user_input})")
+
         
 def one_master_sheet_URS():
     global gc
@@ -608,12 +638,38 @@ def execute_URS():
         formatting(worksheet)
         st.success(f"Trace Matrix successfully generated. [Click here to view]({user_input})")
 
+    
+        #<========================LoD (QualificationDocuments)===============================>
+        
+        cols = "QualificationStep,QualificationDocument,Company GroningerID".split(',')
+
+        FILE_ID_2 = '1lTuFfxbYnXgZMWXoJMFr2UcIr0cB16XOIcrMoXZ6jFw'
+        sht2 = gc.open_by_key(FILE_ID_2)
+
+        worksheet = sht2.worksheet('LoD (QualificationDocuments)')
+
+       
+        df_step4 = pd.DataFrame(worksheet.get_all_values()[0])
+
+        print(df_step4.head())
+        data = worksheet.get_all_values()
+        data = [row[:3] for row in data]
+        df_step4 = pd.DataFrame(data, columns=cols)
+        # for i in range(len(df_step4)):
+        #     new_row = [df_step4.iloc[i]['QualificationStep'],df_step4.iloc[i]['QualificationDocument'],df_step4.iloc[i]['Company GroningerID']]
+        #     new_df_step4.loc[len(new_df_step4)] = new_row
+
+        try:
+            NEW_SHEET_NAME = 'LoD (QualificationDocuments)'
+            worksheet = sht1.add_worksheet(title=NEW_SHEET_NAME, rows=200, cols=26)
+        except gspread.exceptions.APIError as e:
+            print(e)
+
+        worksheet = sht1.worksheet('LoD (QualificationDocuments)')
+        worksheet.update(df_step4.values.tolist())
+        formatting(worksheet)
     else:
         st.error(f"Check the sheet for correct Formate and check if the spreadsheet does not have only one 'Master' sheet[here]({user_input})")
-
-
-
-
 
 if st.button("Submit"):
     with st.spinner("Processing..."):
@@ -623,9 +679,6 @@ if st.button("Submit"):
 
         elif option == "URS":
             execute_URS()
-
         
-
-
 
 
